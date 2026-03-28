@@ -17,7 +17,7 @@ import MobilePreview from "@/pages/MobilePreview";
 
 function App() {
   return (
-    <Router>
+    <Router basename="/Geektrac_Phase-1">
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />

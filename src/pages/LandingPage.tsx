@@ -88,12 +88,16 @@ export default function LandingPage() {
             Everything you need to track, manage, and optimize your entire fleet in real-time. Full-featured telematics built for the modern era.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-            <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00D4FF]/80 text-[#06090F] font-bold w-full sm:w-auto h-12 px-8">
-              Start Free Trial
-            </Button>
-            <Button size="lg" variant="outline" className="text-white border-slate-700 hover:bg-slate-800 w-full sm:w-auto h-12 px-8">
-              View Live Demo
-            </Button>
+            <Link to="/signup" className="w-full sm:w-auto">
+              <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00D4FF]/80 text-[#06090F] font-bold w-full h-12 px-8">
+                Start Free Trial
+              </Button>
+            </Link>
+            <Link to="/login" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="text-white border-slate-700 hover:bg-slate-800 w-full h-12 px-8">
+                View Live Demo
+              </Button>
+            </Link>
           </div>
 
           {/* Stats */}

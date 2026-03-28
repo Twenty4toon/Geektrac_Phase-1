@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { 
   Plus, 
   Search, 
@@ -45,10 +47,42 @@ const initialVehicles = [
 ];
 
 export default function VehiclesModule() {
-  const [vehicles] = useState(initialVehicles);
+  const [vehicles, setVehicles] = useState(initialVehicles);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // New vehicle form state
+  const [newVehicle, setNewVehicle] = useState({
+    name: "",
+    plate: "",
+    type: "medium",
+    imei: ""
+  });
+
+  const handleSave = () => {
+    if (!newVehicle.name || !newVehicle.plate) {
+      toast.error("Please fill in the required fields");
+      return;
+    }
+
+    const vehicleToAdd = {
+      id: vehicles.length + 1,
+      name: newVehicle.name,
+      plate: newVehicle.plate,
+      type: newVehicle.type.charAt(0).toUpperCase() + newVehicle.type.slice(1) + " Truck",
+      status: "Active",
+      driver: "Unassigned",
+      imei: newVehicle.imei || "N/A",
+      odometer: "0 km",
+      lastService: "N/A"
+    };
+
+    setVehicles([vehicleToAdd, ...vehicles]);
+    toast.success(`${newVehicle.name} has been registered successfully!`);
+    setIsDialogOpen(false);
+    setNewVehicle({ name: "", plate: "", type: "medium", imei: "" });
+  };
 
   const filteredVehicles = vehicles.filter(v => {
     const matchesSearch = v.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -66,7 +100,7 @@ export default function VehiclesModule() {
           <p className="text-slate-400 text-sm">Monitor and manage your entire fleet assets here.</p>
         </div>
         
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger render={
             <Button className="bg-[#00D4FF] hover:bg-[#00D4FF]/80 text-[#06090F] font-bold">
               <Plus className="w-4 h-4 mr-2" />
@@ -83,16 +117,28 @@ export default function VehiclesModule() {
             <div className="grid grid-cols-2 gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Vehicle Name</Label>
-                <Input id="name" placeholder="Truck-04" className="bg-slate-900 border-slate-700" />
+                <Input 
+                    id="name" 
+                    placeholder="Truck-04" 
+                    className="bg-slate-900 border-slate-700"
+                    value={newVehicle.name}
+                    onChange={(e) => setNewVehicle({...newVehicle, name: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="plate">Plate Number</Label>
-                <Input id="plate" placeholder="MH 12 XX 0000" className="bg-slate-900 border-slate-700" />
+                <Input 
+                    id="plate" 
+                    placeholder="MH 12 XX 0000" 
+                    className="bg-slate-900 border-slate-700"
+                    value={newVehicle.plate}
+                    onChange={(e) => setNewVehicle({...newVehicle, plate: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="type">Vehicle Type</Label>
-                <Select value={selectedVehicle} onValueChange={(val) => val && setSelectedVehicle(val)}>
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-400">
+                <Select value={newVehicle.type} onValueChange={(val) => setNewVehicle({...newVehicle, type: val || "medium"})}>
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-200">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900 border-slate-700 text-white">
@@ -105,12 +151,18 @@ export default function VehiclesModule() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="imei">GPS IMEI Number</Label>
-                <Input id="imei" placeholder="15 digits" className="bg-slate-900 border-slate-700" />
+                <Input 
+                    id="imei" 
+                    placeholder="15 digits" 
+                    className="bg-slate-900 border-slate-700"
+                    value={newVehicle.imei}
+                    onChange={(e) => setNewVehicle({...newVehicle, imei: e.target.value})}
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">Cancel</Button>
-              <Button className="bg-[#00D4FF] text-[#06090F] font-bold">Save Vehicle</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-700 text-slate-300 hover:bg-slate-800">Cancel</Button>
+              <Button onClick={handleSave} className="bg-[#00D4FF] text-[#06090F] font-bold">Save Vehicle</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -154,7 +206,7 @@ export default function VehiclesModule() {
               />
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
+              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || "all")}>
                 <SelectTrigger className="w-full md:w-[150px] bg-slate-900 border-slate-700 text-slate-300">
                    <Filter className="w-4 h-4 mr-2" />
                    <SelectValue placeholder="Status" />
@@ -176,85 +228,98 @@ export default function VehiclesModule() {
         </CardContent>
       </Card>
 
-      {/* Vehicle Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredVehicles.map((vehicle) => (
-          <Card key={vehicle.id} className="bg-[#0a0f1a] border-slate-800 overflow-hidden group hover:border-[#00D4FF]/30 transition-all">
-            <div className="p-5 border-b border-slate-800">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-slate-800 ${
-                      vehicle.type.includes("Heavy") ? "bg-[#00D4FF]/5" : "bg-purple-500/5"
-                  }`}>
-                    <Tractor className={`w-6 h-6 ${
-                        vehicle.type.includes("Heavy") ? "text-[#00D4FF]" : "text-purple-400"
-                    }`} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white flex items-center gap-2">
-                        {vehicle.name}
-                        <Badge variant="outline" className={`text-[10px] uppercase px-1.5 h-4 border-none ${
-                            vehicle.status === "Active" ? "bg-emerald-500/20 text-emerald-400" :
-                            vehicle.status === "Idle" ? "bg-amber-500/20 text-amber-400" :
-                            vehicle.status === "Service" ? "bg-blue-500/20 text-blue-400" :
-                            "bg-slate-500/20 text-slate-400"
-                        }`}>
-                            {vehicle.status}
-                        </Badge>
-                    </h3>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5">{vehicle.plate}</p>
+      <motion.div 
+        layout
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      >
+        <AnimatePresence>
+          {filteredVehicles.map((vehicle) => (
+            <motion.div
+              key={vehicle.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
+              whileHover={{ y: -5 }}
+            >
+              <Card className="bg-[#0a0f1a] border-slate-800 overflow-hidden group hover:border-[#00D4FF]/30 transition-all h-full">
+                <div className="p-5 border-b border-slate-800">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-slate-800 ${
+                          vehicle.type.includes("Heavy") ? "bg-[#00D4FF]/5" : "bg-purple-500/5"
+                      }`}>
+                        <Tractor className={`w-6 h-6 ${
+                            vehicle.type.includes("Heavy") ? "text-[#00D4FF]" : "text-purple-400"
+                        }`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white flex items-center gap-2">
+                            {vehicle.name}
+                            <Badge variant="outline" className={`text-[10px] uppercase px-1.5 h-4 border-none ${
+                                vehicle.status === "Active" ? "bg-emerald-500/20 text-emerald-400" :
+                                vehicle.status === "Idle" ? "bg-amber-500/20 text-amber-400" :
+                                vehicle.status === "Service" ? "bg-blue-500/20 text-blue-400" :
+                                "bg-slate-500/20 text-slate-400"
+                            }`}>
+                                {vehicle.status}
+                            </Badge>
+                        </h3>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">{vehicle.plate}</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-slate-500 hover:text-white">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-slate-500 hover:text-white">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <CardContent className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-1">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <UserIcon className="w-2.5 h-2.5" /> Assigned Driver
-                    </p>
-                    <p className="text-sm font-medium text-slate-200">{vehicle.driver}</p>
-                 </div>
-                 <div className="space-y-1">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Activity className="w-2.5 h-2.5" /> Odometer
-                    </p>
-                    <p className="text-sm font-medium text-slate-200">{vehicle.odometer}</p>
-                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-1">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <AlertTriangle className="w-2.5 h-2.5" /> Device IMEI
-                    </p>
-                    <p className="text-xs font-mono text-slate-400">{vehicle.imei}</p>
-                 </div>
-                 <div className="space-y-1">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Calendar className="w-2.5 h-2.5" /> Last Service
-                    </p>
-                    <p className="text-sm font-medium text-slate-200">{vehicle.lastService}</p>
-                 </div>
-              </div>
-
-              <div className="pt-4 flex items-center gap-2">
-                <Button variant="outline" size="sm" className="flex-1 bg-slate-900 border-slate-700 text-xs text-slate-300 hover:bg-slate-800">
-                    <Monitor className="w-3.5 h-3.5 mr-1.5" /> Live
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 bg-slate-900 border-slate-700 text-xs text-slate-300 hover:bg-slate-800">
-                    <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Reports
-                </Button>
-                <Button variant="outline" size="sm" className="bg-slate-900 border-slate-700 text-xs text-slate-300 hover:bg-slate-800 px-2 shrink-0">
-                    <Settings2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <CardContent className="p-5 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                            <UserIcon className="w-2.5 h-2.5" /> Assigned Driver
+                        </p>
+                        <p className="text-sm font-medium text-slate-200">{vehicle.driver}</p>
+                     </div>
+                     <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                            <Activity className="w-2.5 h-2.5" /> Odometer
+                        </p>
+                        <p className="text-sm font-medium text-slate-200">{vehicle.odometer}</p>
+                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5" /> Device IMEI
+                        </p>
+                        <p className="text-xs font-mono text-slate-400">{vehicle.imei}</p>
+                     </div>
+                     <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                            <Calendar className="w-2.5 h-2.5" /> Last Service
+                        </p>
+                        <p className="text-sm font-medium text-slate-200">{vehicle.lastService}</p>
+                     </div>
+                  </div>
+    
+                  <div className="pt-4 flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 bg-slate-900 border-slate-700 text-xs text-slate-300 hover:bg-slate-800">
+                        <Monitor className="w-3.5 h-3.5 mr-1.5" /> Live
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 bg-slate-900 border-slate-700 text-xs text-slate-300 hover:bg-slate-800">
+                        <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Reports
+                    </Button>
+                    <Button variant="outline" size="sm" className="bg-slate-900 border-slate-700 text-xs text-slate-300 hover:bg-slate-800 px-2 shrink-0">
+                        <Settings2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }

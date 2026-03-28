@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, 
   Map as MapIcon, 
@@ -38,11 +39,77 @@ const sidebarLinks = [
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location]);
 
   return (
     <div className="flex h-screen bg-[#06090F] text-slate-100 overflow-hidden selection:bg-[#00D4FF]/30">
-      {/* Sidebar */}
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-72 bg-[#0a0f1a] border-r border-slate-800 z-50 flex flex-col md:hidden"
+            >
+                <div className="p-6 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-[#FF6B9D] flex items-center justify-center">
+                            <Truck className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#00D4FF] to-[#FF6B9D]">
+                            Geektrac
+                        </span>
+                    </div>
+                </div>
+
+                <nav className="flex-1 overflow-y-auto px-3 space-y-1 py-4 custom-scrollbar">
+                    {sidebarLinks.map((link) => {
+                        const isActive = location.pathname === link.href;
+                        return (
+                            <Link
+                                key={link.label}
+                                to={link.href}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${
+                                    isActive 
+                                        ? "bg-[#00D4FF]/10 text-[#00D4FF]" 
+                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                                }`}
+                            >
+                                <link.icon className={`w-5 h-5 shrink-0 ${isActive ? "text-[#00D4FF]" : "group-hover:text-white"}`} />
+                                <span className="font-medium">{link.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                <div className="p-4 border-t border-slate-800">
+                    <Button variant="ghost" className="w-full flex items-center justify-start gap-3 text-slate-400 hover:text-white hover:bg-slate-800/50">
+                        <LogOut className="w-5 h-5 shrink-0" />
+                        <span>Log out</span>
+                    </Button>
+                </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
       <aside 
         className={`${
           sidebarOpen ? "w-64" : "w-20"
@@ -100,6 +167,14 @@ export function DashboardLayout() {
             >
               <Menu className="w-5 h-5" />
             </Button>
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-slate-400 hover:text-white md:hidden" 
+                onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
             <div className="relative max-w-md hidden lg:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input 
@@ -129,8 +204,18 @@ export function DashboardLayout() {
         </header>
 
         {/* Dynamic content */}
-        <main className="flex-1 overflow-y-auto p-6 bg-[#06090F] custom-scrollbar">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#06090F] custom-scrollbar">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
